@@ -1,41 +1,47 @@
-// src/components/RoutePlanner.jsx
 'use client';
 import { useState, useRef, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup } from 'react-leaflet'; // Added Popup import
-import L from 'leaflet';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, Popup, useMapEvents } from 'react-leaflet';
+import L, { LatLngTuple, Icon, LeafletMouseEvent } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion } from 'framer-motion';
 
 // Fix for default marker icons
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+if (typeof window !== 'undefined') {
+  delete (Icon.Default.prototype as any)._getIconUrl;
+  Icon.Default.mergeOptions({
+    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  });
+}
 
-const karachiCenter = [24.8607, 67.0011];
+const karachiCenter: LatLngTuple = [24.8607, 67.0011];
 
 // Custom icons
-const startIcon = new L.Icon({
+const startIcon = new Icon({
   iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23C5172E"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>',
   iconSize: [32, 32],
   iconAnchor: [16, 32],
 });
 
-const endIcon = new L.Icon({
+const endIcon = new Icon({
   iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234A102A"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>',
   iconSize: [32, 32],
   iconAnchor: [16, 32],
 });
 
-const busIcon = new L.Icon({
+const busIcon = new Icon({
   iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FCF259"><path d="M18 11H6V6h12v5zM16.5 17a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-9 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10z"/></svg>',
   iconSize: [40, 40],
   iconAnchor: [20, 40],
 });
 
-function RouteProgress({ route, progress }) {
+interface RouteProgressProps {
+  route: LatLngTuple[];
+  progress: number;
+}
+
+function RouteProgress({ route, progress }: RouteProgressProps) {
   const map = useMap();
   
   useEffect(() => {
@@ -48,22 +54,35 @@ function RouteProgress({ route, progress }) {
   return null;
 }
 
+// Component to handle map click events
+function MapClickHandler({ onClick }: { onClick: (e: LeafletMouseEvent) => void }) {
+  useMapEvents({
+    click: onClick,
+  });
+  return null;
+}
+
+interface BusStop {
+  name: string;
+  position: LatLngTuple;
+}
+
 export default function RoutePlanner() {
-  const [startPoint, setStartPoint] = useState(null);
-  const [endPoint, setEndPoint] = useState(null);
-  const [route, setRoute] = useState([]);
-  const [busPosition, setBusPosition] = useState(null);
+  const [startPoint, setStartPoint] = useState<LatLngTuple | null>(null);
+  const [endPoint, setEndPoint] = useState<LatLngTuple | null>(null);
+  const [route, setRoute] = useState<LatLngTuple[]>([]);
+  const [busPosition, setBusPosition] = useState<LatLngTuple | null>(null);
   const [progress, setProgress] = useState(0);
   const [isTraveling, setIsTraveling] = useState(false);
   const [eta, setEta] = useState('--:--');
   const [distance, setDistance] = useState('0 km');
   const [searchStart, setSearchStart] = useState('');
   const [searchEnd, setSearchEnd] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
-  const mapRef = useRef(null);
+  const [suggestions, setSuggestions] = useState<BusStop[]>([]);
+  const mapRef = useRef<L.Map | null>(null);
   
   // Sample bus stops in Karachi
-  const busStops = [
+  const busStops: BusStop[] = [
     { name: "Gulshan Chowrangi", position: [24.9068, 67.0771] },
     { name: "NIPA", position: [24.8912, 67.0673] },
     { name: "Karachi University", position: [24.9365, 67.1100] },
@@ -83,11 +102,11 @@ export default function RoutePlanner() {
     if (!startPoint || !endPoint) return;
     
     // Simulate route generation with intermediate points
-    const newRoute = [
+    const newRoute: LatLngTuple[] = [
       startPoint,
-      [startPoint[0] + 0.01, startPoint[1] + 0.01],
-      [(startPoint[0] + endPoint[0]) / 2, (startPoint[1] + endPoint[1]) / 2],
-      [endPoint[0] - 0.01, endPoint[1] - 0.01],
+      [startPoint[0] + 0.01, startPoint[1] + 0.01] as LatLngTuple,
+      [(startPoint[0] + endPoint[0]) / 2, (startPoint[1] + endPoint[1]) / 2] as LatLngTuple,
+      [endPoint[0] - 0.01, endPoint[1] - 0.01] as LatLngTuple,
       endPoint
     ];
     
@@ -105,7 +124,7 @@ export default function RoutePlanner() {
   };
 
   // Calculate distance between two points
-  const calculateDistance = (point1, point2) => {
+  const calculateDistance = (point1: LatLngTuple, point2: LatLngTuple) => {
     const R = 6371; // Earth radius in km
     const dLat = (point2[0] - point1[0]) * Math.PI / 180;
     const dLon = (point2[1] - point1[1]) * Math.PI / 180;
@@ -139,7 +158,7 @@ export default function RoutePlanner() {
       // Calculate current bus position
       const segmentIndex = Math.floor(currentProgress * (route.length - 1));
       const segmentProgress = (currentProgress * (route.length - 1)) - segmentIndex;
-      const currentPos = [
+      const currentPos: LatLngTuple = [
         route[segmentIndex][0] + (route[segmentIndex + 1][0] - route[segmentIndex][0]) * segmentProgress,
         route[segmentIndex][1] + (route[segmentIndex + 1][1] - route[segmentIndex][1]) * segmentProgress
       ];
@@ -149,7 +168,7 @@ export default function RoutePlanner() {
   };
 
   // Handle map click
-  const handleMapClick = (e) => {
+  const handleMapClick = (e: LeafletMouseEvent) => {
     if (!startPoint) {
       setStartPoint([e.latlng.lat, e.latlng.lng]);
     } else if (!endPoint) {
@@ -159,7 +178,7 @@ export default function RoutePlanner() {
   };
 
   // Search suggestions
-  const handleSearch = (type, value) => {
+  const handleSearch = (type: 'start' | 'end', value: string) => {
     if (type === 'start') {
       setSearchStart(value);
       if (value.length > 2) {
@@ -186,7 +205,7 @@ export default function RoutePlanner() {
   };
 
   // Select a suggestion
-  const selectSuggestion = (stop, type) => {
+  const selectSuggestion = (stop: BusStop, type: 'start' | 'end') => {
     if (type === 'start') {
       setStartPoint(stop.position);
       setSearchStart(stop.name);
@@ -388,9 +407,11 @@ export default function RoutePlanner() {
               center={karachiCenter} 
               zoom={12} 
               style={{ height: "100%", width: "100%" }}
-              whenCreated={mapInstance => { mapRef.current = mapInstance }}
-              onClick={handleMapClick}
+              ref={mapRef}
             >
+              {/* Add MapClickHandler component */}
+              <MapClickHandler onClick={handleMapClick} />
+              
               <TileLayer
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -411,9 +432,11 @@ export default function RoutePlanner() {
               {route.length > 0 && (
                 <Polyline 
                   positions={route} 
-                  color="#FCF259" 
-                  weight={4}
-                  dashArray="5, 10"
+                  pathOptions={{ 
+                    color: '#FCF259', 
+                    weight: 4,
+                    dashArray: '5, 10'
+                  }}
                 />
               )}
               

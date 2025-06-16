@@ -6,8 +6,6 @@ import Navbar from '@/components/Navbar';
 import HeroSection from '@/components/HeroSection';
 import RoutePlanner from '@/components/RoutePlanner'; // Import RoutePlanner
 import FeaturesSection from '@/components/FeaturesSection';
-import LiveLeafletMap from '@/components/LiveLeafletMap';
-import BusRoutesSection from '@/components/BusRoutesSection';
 import DownloadSection from '@/components/DownloadSection';
 import Footer from '@/components/Footer';
 import { motion } from 'framer-motion';
@@ -80,8 +78,6 @@ export default function Home() {
               </p>
             </motion.div>
             
-            <LiveLeafletMap />
-            
             <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
               <motion.div 
                 initial={{ opacity: 0, y: 30 }}
@@ -120,7 +116,6 @@ export default function Home() {
           </div>
         </section>
         
-        <BusRoutesSection />
         <DownloadSection />
       </main>
       

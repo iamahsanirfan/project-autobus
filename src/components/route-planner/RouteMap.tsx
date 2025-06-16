@@ -1,4 +1,3 @@
-// components/bus-management/AdminRouteMap.tsx
 'use client';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { 
@@ -9,7 +8,7 @@ import {
   useMap, 
   Popup,
 } from 'react-leaflet';
-import L, { LatLngTuple, Icon } from 'leaflet'; // Add Icon import
+import L, { LatLngTuple, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion } from 'framer-motion';
 
