@@ -12,29 +12,6 @@ import L, { LatLngTuple, Icon } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { motion } from 'framer-motion';
 
-// Fix for default marker icons
-if (typeof window !== 'undefined') {
-  delete (Icon.Default.prototype as any)._getIconUrl;
-  Icon.Default.mergeOptions({
-    iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  });
-}
-
-// Custom icons
-const createCustomIcon = (color: string): Icon => new Icon({
-  iconUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${encodeURIComponent(color)}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>`,
-  iconSize: [32, 32],
-  iconAnchor: [16, 32],
-});
-
-const busIcon: Icon = new Icon({
-  iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FCF259"><path d="M18 11H6V6h12v5zM16.5 17a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-9 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10z"/></svg>',
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-});
-
 // OpenRouteService API configuration
 const ORS_API_KEY = "5b3ce3597851110001cf6248b61e38e8146e4ca4a10e8435948f8974";
 const ORS_ENDPOINT = "https://api.openrouteservice.org/v2/directions/driving-car";
@@ -80,6 +57,36 @@ export default function AdminRouteMap() {
   const [routeError, setRouteError] = useState<string | null>(null);
   const animationRef = useRef<number | null>(null);
   const [selectedRoute, setSelectedRoute] = useState('Todos los dias');
+  const [mapInitialized, setMapInitialized] = useState(false);
+
+  // Fix Leaflet icons in useEffect
+  useEffect(() => {
+    // Client-side only
+    if (typeof window !== 'undefined') {
+      delete (Icon.Default.prototype as any)._getIconUrl;
+      Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+        iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+        shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+      });
+      
+      // Set flag that map is safe to render
+      setMapInitialized(true);
+    }
+  }, []);
+
+  // Custom icons (defined after useEffect to ensure window exists)
+  const createCustomIcon = (color: string): Icon => new Icon({
+    iconUrl: `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${encodeURIComponent(color)}"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 32],
+  });
+
+  const busIcon: Icon = new Icon({
+    iconUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FCF259"><path d="M18 11H6V6h12v5zM16.5 17a1.5 1.5 0 100-3 1.5 1.5 0 000 3zm-9 0a1.5 1.5 0 100-3 1.5 1.5 0 000 3zM4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10z"/></svg>',
+    iconSize: [40, 40],
+    iconAnchor: [20, 40],
+  });
 
   // Fetch the route from OpenRouteService
   const fetchRoute = useCallback(async () => {
@@ -227,6 +234,18 @@ export default function AdminRouteMap() {
       }
     };
   }, []);
+
+  // Don't render map until client-side initialized
+  if (!mapInitialized) {
+    return (
+      <div className="bg-gradient-to-b from-[#4A102A] to-[#85193C] rounded-2xl overflow-hidden shadow-2xl border-2 border-[#FCF259] min-h-[70vh] flex items-center justify-center">
+        <div className="text-center p-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#FCF259] mx-auto"></div>
+          <p className="text-white mt-4">Initializing map...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <motion.div

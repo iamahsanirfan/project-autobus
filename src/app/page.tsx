@@ -1,125 +1,65 @@
-// src/pages/index.jsx
-"use client"
-import { useState, useEffect } from 'react';
-import Head from 'next/head';
-import Navbar from '@/components/Navbar';
-import HeroSection from '@/components/HeroSection';
-import RoutePlanner from '@/components/RoutePlanner'; // Import RoutePlanner
-import FeaturesSection from '@/components/FeaturesSection';
-import DownloadSection from '@/components/DownloadSection';
-import Footer from '@/components/Footer';
+'use client';
+import dynamic from 'next/dynamic';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 
+// Dynamically import Leaflet components to avoid SSR
+const AdminRouteMap = dynamic(() => import('@/components/route-planner/RouteMap'), {
+  ssr: false,
+  loading: () => <div className="text-white text-center p-8">Loading map...</div>
+});
+
+const RoutePlanner = dynamic(() => import('@/components/RoutePlanner'), {
+  ssr: false,
+  loading: () => <div className="text-white text-center p-8">Loading route planner...</div>
+});
+
 export default function Home() {
-  const [activeBuses, setActiveBuses] = useState(12);
-  const [isOnline, setIsOnline] = useState(true);
-  
-  // Simulate bus count changing
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveBuses(prev => {
-        const change = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1
-        const newCount = Math.max(8, Math.min(15, prev + change));
-        return newCount;
-      });
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, []);
+  const [activeTab, setActiveTab] = useState('admin');
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#4A102A] to-[#85193C]">
-      <Head>
-        <title>Karachi Bus Tracker | Real-time Bus Locations</title>
-        <meta name="description" content="Track buses in Karachi in real-time. Never miss your bus again!" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+    <div className="min-h-screen bg-gradient-to-b from-[#2c0a1a] to-[#5a1c44]">
+      <header className="bg-[#4A102A] border-b border-[#85193C] p-4">
+        <div className="container mx-auto flex justify-between items-center">
+          <h1 className="text-2xl font-bold text-white">Autobus Karachi</h1>
+          <nav className="flex space-x-4">
+            <button
+              onClick={() => setActiveTab('admin')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'admin'
+                  ? 'bg-[#C5172E] text-white'
+                  : 'bg-[#4A102A] text-gray-300 hover:bg-[#5a1c44]'
+              }`}
+            >
+              Admin Dashboard
+            </button>
+            <button
+              onClick={() => setActiveTab('planner')}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'planner'
+                  ? 'bg-[#C5172E] text-white'
+                  : 'bg-[#4A102A] text-gray-300 hover:bg-[#5a1c44]'
+              }`}
+            >
+              Route Planner
+            </button>
+          </nav>
+        </div>
+      </header>
 
-      <Navbar />
-      
-      <main>
-        <HeroSection activeBuses={activeBuses} isOnline={isOnline} />
-        
-        {/* Route Planner Section */}
-        <section className="py-16 px-4">
-          <div className="container mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-12"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Plan Your Journey</h2>
-              <p className="text-gray-300 max-w-2xl mx-auto">
-                Easily find the best bus route from your pickup to drop-off location
-              </p>
-            </motion.div>
-            
-            <RoutePlanner />
-          </div>
-        </section>
-        
-        <FeaturesSection />
-        
-        {/* Live Map Section */}
-        <section id="map" className="py-20 px-4 bg-[#4A102A]">
-          <div className="container mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-center mb-16"
-            >
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Live Bus Map</h2>
-              <p className="text-gray-200 max-w-2xl mx-auto">
-                Track buses in real-time across Karachi
-              </p>
-            </motion.div>
-            
-            <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                viewport={{ once: true }}
-                className="bg-[#85193C] p-6 rounded-2xl border border-[#FCF259]/20"
-              >
-                <div className="text-4xl font-bold text-[#FCF259] mb-2">15+</div>
-                <h3 className="text-xl font-bold text-white mb-2">Active Routes</h3>
-                <p className="text-gray-300">Covering all major areas of Karachi</p>
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                viewport={{ once: true }}
-                className="bg-[#85193C] p-6 rounded-2xl border border-[#FCF259]/20"
-              >
-                <div className="text-4xl font-bold text-[#FCF259] mb-2">300+</div>
-                <h3 className="text-xl font-bold text-white mb-2">Bus Stops</h3>
-                <p className="text-gray-300">Conveniently located throughout the city</p>
-              </motion.div>
-              <motion.div 
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                viewport={{ once: true }}
-                className="bg-[#85193C] p-6 rounded-2xl border border-[#FCF259]/20"
-              >
-                <div className="text-4xl font-bold text-[#FCF259] mb-2">24/7</div>
-                <h3 className="text-xl font-bold text-white mb-2">Service Updates</h3>
-                <p className="text-gray-300">Real-time tracking and notifications</p>
-              </motion.div>
-            </div>
-          </div>
-        </section>
-        
-        <DownloadSection />
+      <main className="container mx-auto py-8">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          {activeTab === 'admin' ? <AdminRouteMap /> : <RoutePlanner />}
+        </motion.div>
       </main>
-      
-      <Footer />
+
+      <footer className="bg-[#4A102A] border-t border-[#85193C] p-4 text-center text-gray-400">
+        <p>© 2023 Autobus Karachi. All rights reserved.</p>
+      </footer>
     </div>
   );
 }
